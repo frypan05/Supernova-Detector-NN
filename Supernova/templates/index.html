@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supernova Detection</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet"> <!-- Google Font -->
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #0a0b0d;  /* Spacey black background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            color: #fff;
+        }
+
+        .container {
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 30px 30px 20px; /* Fixed padding */
+            width: 400px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(15px);
+            transition: transform 0.3s ease-in-out;
+            position: relative;
+            z-index: 1;  /* Make sure the container is on top of the particles */
+        }
+
+        .container:hover {
+            transform: translateY(-8px);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            font-weight: 500;
+            color: #3EC1C9;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 15px;
+            font-size: 1rem;
+            border: none;
+            background-color: #3EC1C9;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        }
+
+        input[type="file"]:hover {
+            background-color: #36b1b1;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.4);
+        }
+
+        .result {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+
+        .loading {
+            font-size: 1rem;
+            font-style: italic;
+            color: #bbb;
+            margin-top: 15px;
+        }
+
+        .footer {
+            font-size: 0.9rem;
+            margin-top: 20px;
+            color: #bbb;
+            text-align: center;
+        }
+
+        .footer a {
+            color: #3EC1C9;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Starry Background - Black Stars */
+        .stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://www.transparenttextures.com/patterns/stardust.png');
+            z-index: -1;
+            opacity: 0.5;
+            animation: starry-background 100s linear infinite;
+        }
+
+        @keyframes starry-background {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(100%); }
+        }
+
+        /* Particle animation with black stars */
+        .particle {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background-color: #000;  /* Black color for particles */
+            border-radius: 50%;
+            animation: moveParticle 3s infinite;
+        }
+
+        @keyframes moveParticle {
+            0% {
+                transform: translateX(0) translateY(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(calc(100vw * 0.5)) translateY(calc(100vh * 0.5));
+                opacity: 0;
+            }
+        }
+
+        /* Add multiple particles with varied durations */
+        .particle:nth-child(odd) {
+            animation-duration: 4s;
+        }
+
+        .particle:nth-child(even) {
+            animation-duration: 5s;
+        }
+
+        .particles-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -2;  /* Behind the container */
+        }
+
+        /* Uploaded Image Display */
+        #uploadedImage {
+            width: 100%;
+            max-width: 350px;
+            margin-top: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="particles-wrapper">
+        <!-- Particles will be added here dynamically -->
+    </div>
+
+    <div class="container">
+        <h1>Supernova Detection</h1>
+        <input type="file" id="imageUpload" accept="image/*">
+        <div id="result" class="result"></div>
+        <div id="loading" class="loading" style="display: none;">Processing...</div>
+        <img id="uploadedImage" src="" alt="Uploaded Image" style="display: none;">
+    </div>
+
+    <script>
+        // Handle image upload and send it to the Flask backend for prediction
+        const imageUpload = document.getElementById('imageUpload');
+        const resultDiv = document.getElementById('result');
+        const loadingDiv = document.getElementById('loading');
+        const uploadedImage = document.getElementById('uploadedImage');
+        const particlesWrapper = document.querySelector('.particles-wrapper');
+
+        // Create particles
+        function createParticles(numParticles) {
+            for (let i = 0; i < numParticles; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                const posX = Math.random() * window.innerWidth;
+                const posY = Math.random() * window.innerHeight;
+                particle.style.top = `${posY}px`;
+                particle.style.left = `${posX}px`;
+                particlesWrapper.appendChild(particle);
+            }
+        }
+
+        // Generate 100 particles
+        createParticles(100);
+
+        imageUpload.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Show loading message
+            resultDiv.innerHTML = '';
+            loadingDiv.style.display = 'block';
+            uploadedImage.style.display = 'none'; // Hide previous image
+
+            // Show the uploaded image preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedImage.src = e.target.result;
+                uploadedImage.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+
+            // Create FormData object to send the image to backend
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Send the image to Flask backend for prediction
+            const response = await fetch('/predict', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            loadingDiv.style.display = 'none';
+
+            if (data.error) {
+                resultDiv.innerHTML = 'Error: ' + data.error;
+            } else {
+                resultDiv.innerHTML = `${data.prediction}<br>Confidence: ${data.confidence}`;
+            }
+        });
+    </script>
+</body>
+</html>
